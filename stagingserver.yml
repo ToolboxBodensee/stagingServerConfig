@@ -1,0 +1,39 @@
+- hosts: staging
+  become: true
+  pre_tasks:
+    - name: Create web root directory
+      file:
+        path: /var/www
+        state: directory
+        owner: tbp
+        mode: "u=rwx,g=rwx,o=rx"
+  roles:
+    - role: ssh-auth
+      home_sweet_home: false
+      users:
+        jonas:
+          - jonas@rigel7
+        tbp:
+          - toolbox_website_staging
+      admins:
+        - jonas
+      accounts:
+        - jonas
+        - tbp
+      ssh_public_key_store: 'admin_ssh_keys'
+      tags:
+        - sshkeys
+    - role: antoiner77.caddy
+      caddy_config: |
+        *.{{inventory_hostname}} {
+          root /var/www
+          rewrite {
+              to /{label1}{uri}
+          }
+          tls tbp_letsencrypt@jonasotto.com {
+              max_certs 10
+          }
+          errors /tmp/errors.log
+          log /tmp/log.log
+        }
+      caddy_systemd_capabilities_enabled: True
